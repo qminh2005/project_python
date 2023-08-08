@@ -48,7 +48,7 @@ class Inventory:
 
 
 def main():
-    inventory = Inventory("ManufacturerList.csv", "PriceList.csv", "ServiceDatesList.csv")
+    inventory_dict = Inventory("ManufacturerList.csv", "PriceList.csv", "ServiceDatesList.csv")
 
     while True:
         query = input("Enter the manufacturer and item type or q to quit: ")
@@ -63,7 +63,7 @@ def main():
 
         manufacturer, item_type = query_parts
 
-        items = inventory.query_item(manufacturer, item_type)
+        items = inventory_dict.query_item(manufacturer, item_type)
 
         if not items:
             print("No such item in inventory\n")
@@ -72,28 +72,28 @@ def main():
         items.sort(key=sort_by_price, reverse=True)
         chosen_item_id, chosen_item = items[0]
 
+        print('---------------------------------------------------------------')
         print(f"Your item is: {chosen_item_id}, {chosen_item['manufacturer']}, "
-              f"{chosen_item['item_type']}, ${chosen_item['price']}\n")
+              f"{chosen_item['item_type']}, ${chosen_item['price']}")
 
-        similar_items = []
-        for item_id, item_type in items[1]:
-            if item_type["item_type"] == chosen_item["item_type"]:
-                similar_items.append((item_id, item_type))
+        close_price_items = [(item_id, item) for item_id, item in inventory_dict.inventory.items()
+                             if item['manufacturer'].lower() != manufacturer.lower()
+                             and item['item_type'].lower() == item_type.lower()
+                             and item['service_date'] >= datetime.now()
+                             and item['damaged'] != 'damaged']
 
-        if similar_items:
-            closest_item_id, closest_item = min(similar_items, key=compare_item_prices(chosen_item['price']))
-            print(f"You may also consider: {closest_item_id}, {closest_item['manufacturer']}, "
-                  f"{closest_item['item_type']}, ${closest_item['price']}\n")
+        close_price_items.sort(key=sort_by_price, reverse=True)
+
+        if close_price_items:
+            similar_item_id, similar_item = close_price_items[0]
+            print(f"You may, also, consider: {similar_item_id}, {similar_item['manufacturer']}, "
+                  f"{similar_item['item_type']}, ${similar_item['price']}")
+            
+        print('---------------------------------------------------------------\n')
 
 
 def sort_by_price(item):
     return item[1]["price"]
-
-
-def compare_item_prices(reference_price):
-    def price_difference(item):
-        return abs(item[1]['price'] - reference_price)
-    return price_difference
 
 
 if __name__ == "__main__":
